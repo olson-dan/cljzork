@@ -106,3 +106,57 @@
     (= optype :op1) (nth one-op opcode)
     (= optype :op2) (nth two-op opcode)
     (= optype :var) (nth var-op opcode)))
+
+(defn returns? [name]
+  (contains?
+   #{:or
+     :and
+     :loadw
+     :loadb
+     :get_prop
+     :get_prop_addr
+     :get_next_prop
+     :add
+     :sub
+     :mul
+     :div
+     :mod
+     :call_2s
+     :get_sibling
+     :get_child
+     :get_parent
+     :get_prop_len
+     :call_1s
+     :load
+     :not
+     :catch
+     :call
+     :random
+     :call_vs2
+     :read_char
+     :scan_table
+     :not_v4
+     :check_arg_count} name))
+
+(defn branches? [name]
+  (contains?
+   #{:je
+     :jl
+     :jg
+     :dec_chk
+     :inc_chk
+     :jin
+     :test
+     :test_attr
+     :jz
+     :get_sibling
+     :get_child
+     :save
+     :restore
+     :verify
+     :piracy
+     :scan_table
+     :check_arg_count} name))
+
+(defn prints? [name]
+  (contains? #{:print :print_ret} name))

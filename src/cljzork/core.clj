@@ -30,32 +30,72 @@
      :finished false
      :ip (read-u16 memory 6)}))
 
-(defn decode-var-args [optypes index size args]
+(defn var-arg-size [optype]
+  (cond
+    (= optype 3) 0
+    (= optype 2) 1
+    (= optype 1) 1
+    :default 0))
+
+(defn decode-arg-value [optype memory offset size]
+  (let [offset (+ offset size)]
+    (cond
+      (= optype 3) nil
+      (= optype 2) {:type :variable, :value (read-u8 memory offset)}
+      (= optype 1) {:type :small, :value (read-u8 memory offset)}
+      :default {:type :large, :value (read-u16 memory offset)})))
+
+(defn decode-var-args [optypes memory offset index size args]
   (let [shift (* (- 3 index) 2)
         mask (bit-shift-left 3 shift)
-        optype (bit-shift-right (bit-and optypes mask) shift)]
+        optype (bit-shift-right (bit-and optypes mask) shift)
+        value (decode-arg-value optype memory offset size)
+        size (+ size (var-arg-size optype))]
     (if (= index 3)
-      (conj args optype)
-      (recur optypes (inc index) size (conj args optype)))))
+      {:args (conj args value), :size size}
+      (recur optypes memory offset (inc index) size (conj args value)))))
 
 (defn decode-var [memory offset op]
   (let [opcode (bit-and op 0x1f)
-        optype (if (zero? (bit-and op 0x20)) :op2 :var)
-        name (instructions/get-name optype opcode)
+        encoding (if (zero? (bit-and op 0x20)) :op2 :var)
+        name (instructions/get-name encoding opcode)
         optypes (read-u8 memory (inc offset))
-        args (decode-var-args optypes 0 2 [])
-        args (filterv (comp (partial not= 3)) args)]
+        args (decode-var-args optypes memory offset 0 2 [])
+        size (:size args)
+        args (filterv (comp not nil?) (:args args))]
     (println (format "[%08X]" offset) name args)
     {:offset offset
      :name name
      :args args
-     :ret :omitted}))
+     :size size}))
 
 (defn decode-short [memory offset op]
-  (println "decode-short" op))
+  (let [optype (bit-shift-right (bit-and op 0x30) 4)
+        opcode (bit-and op 0xf)
+        encoding (if (= optype 3) :op0 :op1)
+        name (instructions/get-name encoding opcode)
+        value (decode-arg-value optype memory offset 1)
+        size (if (= (:type value) :large) 3 2)
+        args (filterv (comp not nil?) (conj [] value))]
+    (println (format "[%08X]" offset) name args)
+    {:offset offset
+     :name name
+     :args args
+     :size size}))
 
 (defn decode-long [memory offset op]
-  (println "decode-long" op))
+  (let [opcode (bit-and op 0x1f)
+        name (instructions/get-name :op2 opcode)
+        x (decode-arg-value (if (zero? (bit-and op 0x40)) 1 2) memory offset 1)
+        y (decode-arg-value (if (zero? (bit-and op 0x20)) 1 2) memory offset 2)
+        args (conj [] x y)]
+    (println (format "[%08X]" offset) name args)
+    {:offset offset
+     :name name
+     :args args
+     :size 3}))
+
+(defn decode-return [instruction])
 
 (defn decode [memory offset]
   (let [op (read-u8 memory offset)
