@@ -70,6 +70,8 @@
 
 (def var-op
   [:call
+   :storew
+   :storeb
    :put_prop
    :sread
    :print_char
