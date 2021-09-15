@@ -1,0 +1,1 @@
+["^ ","~$read-u16",["^ ","~:row",3,"~:col",1,"~:fixed-arities",["~#set",[2]],"~:name","^0","~:ns","~$cljzork.memory","~:top-ns","^7"],"~$read-u8",["^ ","^1",9,"^2",1,"^3",["^4",[2]],"^5","^9","^6","^7","^8","^7"],"~:filename","D:\\projects\\cljzork\\src\\cljzork\\memory.clj"]
