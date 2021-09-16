@@ -1,7 +1,8 @@
 (ns cljzork.core
   (:require [clojure.java.io]
             [cljzork.decode :as decode]
-            [cljzork.memory :as mem])
+            [cljzork.memory :as mem]
+            [cljzork.execute :as execute])
   (:gen-class))
 
 

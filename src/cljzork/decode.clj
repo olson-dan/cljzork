@@ -2,14 +2,14 @@
   (:require [cljzork.memory :as mem]
             [cljzork.instructions :as instructions]))
 
-(defn var-arg-size [optype]
+(defn- var-arg-size [optype]
   (cond
     (= optype 3) 0
     (= optype 2) 1
     (= optype 1) 1
     :else 2))
 
-(defn decode-arg-value [optype memory offset size]
+(defn- decode-arg-value [optype memory offset size]
   (let [offset (+ offset size)]
     (cond
       (= optype 3) nil
@@ -17,7 +17,7 @@
       (= optype 1) {:type :small, :value (mem/read-u8 memory offset)}
       :else {:type :large, :value (mem/read-u16 memory offset)})))
 
-(defn decode-var-args [optypes memory offset index size args]
+(defn- decode-var-args [optypes memory offset index size args]
   (let [shift (* (- 3 index) 2)
         mask (bit-shift-left 3 shift)
         optype (bit-shift-right (bit-and optypes mask) shift)
@@ -27,7 +27,7 @@
       {:args (conj args value), :size size}
       (recur optypes memory offset (inc index) size (conj args value)))))
 
-(defn decode-var [memory offset op]
+(defn- decode-var [memory offset op]
   (let [opcode (bit-and op 0x1f)
         encoding (if (zero? (bit-and op 0x20)) :op2 :var)
         name (instructions/get-name encoding opcode)
@@ -40,7 +40,7 @@
      :args args
      :size size}))
 
-(defn decode-short [memory offset op]
+(defn- decode-short [memory offset op]
   (let [optype (bit-shift-right (bit-and op 0x30) 4)
         opcode (bit-and op 0xf)
         encoding (if (= optype 3) :op0 :op1)
@@ -53,7 +53,7 @@
      :args args
      :size size}))
 
-(defn decode-long [memory offset op]
+(defn- decode-long [memory offset op]
   (let [opcode (bit-and op 0x1f)
         name (instructions/get-name :op2 opcode)
         x (decode-arg-value (if (zero? (bit-and op 0x40)) 1 2) memory offset 1)
@@ -64,14 +64,14 @@
      :args args
      :size 3}))
 
-(defn decode-return [i memory]
+(defn- decode-return [i memory]
   (if-not (instructions/returns? (:name i))
     i
     (let [ret (mem/read-u8 memory (+ (:offset i) (:size i)))
           size (inc (:size i))]
       (assoc i :ret ret :size size))))
 
-(defn decode-branch [i memory]
+(defn- decode-branch [i memory]
   (if-not (instructions/branches? (:name i))
     i
     (let []
@@ -131,13 +131,13 @@
        (decode-zstring-bytes memory bytes)
        (decode-zstring memory offset (conj bytes a b c) (+ index 2))))))
 
-(defn decode-print [i memory]
+(defn- decode-print [i memory]
   (if-not (instructions/prints? (:name i))
     i
     (let [zstring (decode-zstring memory (+ (:offset i) (:size i)))]
       (assoc i :string zstring :size (+ (:size i) (:size zstring))))))
 
-(defn decode-instruction [memory offset]
+(defn- decode-instruction [memory offset]
   (let [op (mem/read-u8 memory offset)
         type (unsigned-bit-shift-right (bit-and op 0xc0) 6)]
     (cond
